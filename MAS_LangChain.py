@@ -7,10 +7,10 @@ from urllib.parse import urlsplit
 import requests
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openrouter import ChatOpenRouter
 from pydantic import BaseModel, Field
 
-DEFAULT_MODEL = "gemini-3.5-flash"
+DEFAULT_MODEL = "openai/gpt-4.1-mini"
 EXAMPLE_QUESTION = (
     "Research demand for AI Literacy and AI Training among Indian Enterprises. "
     "Find relevant industry reports, identify common enterprise use cases and "
@@ -43,7 +43,7 @@ def setting(name: str, default: str = "") -> str:
 
 
 def missing_keys() -> list[str]:
-    return [name for name in ("GEMINI_API_KEY", "SERP_API_KEY") if not setting(name)]
+    return [name for name in ("OPENROUTER_API_KEY", "SERP_API_KEY") if not setting(name)]
 
 
 def search_web(question: str, api_key: str) -> list[dict[str, str]]:
@@ -131,9 +131,9 @@ def run_workflow(request: str) -> str:
     evidence = json.dumps(sources, ensure_ascii=False)
     stage = "Researcher"
     try:
-        model = ChatGoogleGenerativeAI(
-            model=setting("GEMINI_MODEL", DEFAULT_MODEL), api_key=setting("GEMINI_API_KEY"),
-            vertexai=False, temperature=1.0, timeout=60, max_retries=1,
+        model = ChatOpenRouter(
+            model=setting("OPENROUTER_MODEL", DEFAULT_MODEL), api_key=setting("OPENROUTER_API_KEY"),
+            temperature=0.3, timeout=60, max_retries=1, max_tokens=4096,
         )
         research = _text_chain(model, "You are the Researcher. Prepare a concise research brief with useful facts, "
                                "source IDs, source URLs and evidence gaps. Prefer credible industry or primary sources.")
@@ -155,10 +155,10 @@ def run_workflow(request: str) -> str:
              "Keep the complete brief under 800 words."),
             ("human", "Business question:\n{question}\n\nSearch evidence:\n{evidence}\n\nResearch:\n{research}\n\nAnalysis:\n{analysis}"),
         ])
-        actions = prompt | model.with_structured_output(ActionBrief)
+        actions = prompt | model.with_structured_output(ActionBrief, method="json_schema")
         brief = actions.invoke({"question": question, "evidence": evidence, "research": research_text, "analysis": analysis_text})
         return render_brief(brief, sources)
     except Exception:
         # Provider exceptions can contain request URLs or credentials. Never display them.
-        raise WorkflowError(f"{stage} could not complete. Check your Gemini key, model access and quota, then retry. "
+        raise WorkflowError(f"{stage} could not complete. Check your OpenRouter key, model access and quota, then retry. "
                             "If the service is busy, wait a minute before trying again.") from None

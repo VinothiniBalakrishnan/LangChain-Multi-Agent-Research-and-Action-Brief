@@ -19,26 +19,28 @@ Enter your keys in `.streamlit/secrets.toml`, then run:
 streamlit run app.py
 ```
 
-Do not overwrite an existing secrets file containing your keys. You may instead set `GEMINI_API_KEY` and `SERP_API_KEY` as environment variables. Environment values take precedence. Optional `GEMINI_MODEL` defaults to `gemini-3.5-flash`; change it if your account uses another supported Gemini model. Keep secrets out of Git.
+Do not overwrite an existing secrets file containing your keys. You may instead set `OPENROUTER_API_KEY` and `SERP_API_KEY` as environment variables. Environment values take precedence. Optional `OPENROUTER_MODEL` defaults to `openai/gpt-4.1-mini`; change it if your account uses another supported OpenRouter model. Keep secrets out of Git.
+
+When switching from the previous Gemini version, install the updated requirements and add `OPENROUTER_API_KEY` to both local and cloud secrets. Existing `GEMINI_API_KEY` and `GEMINI_MODEL` entries are ignored. Keep your existing `SERP_API_KEY`. Custom OpenRouter models must support JSON Schema structured output. Requests use your OpenRouter balance and model-specific limits.
 
 ## Publish on Streamlit Community Cloud
 
 1. Create a GitHub repository and upload `app.py`, `MAS_LangChain.py`, `requirements.txt`, `README.md`, `.gitignore`, and the `.streamlit` folder **excluding secrets.toml**. The provided `research-action-brief.zip` contains only deployable source and tests; unzip it before uploading. `requirements-lock.txt` records the complete tested local environment.
 2. Sign in at https://share.streamlit.io and choose **Create app** / **Deploy a public app from GitHub**.
 3. Select the repository and branch; set the entrypoint to `app.py`.
-4. In **Advanced settings**, select Python 3.10 and add the following secrets with your real keys:
+4. In **Advanced settings**, select Python 3.12 and add the following secrets with your real keys:
 
    ```toml
-   GEMINI_API_KEY = "your-gemini-key"
+   OPENROUTER_API_KEY = "your-openrouter-key"
    SERP_API_KEY = "your-serpapi-key"
-   GEMINI_MODEL = "gemini-3.5-flash"
+   OPENROUTER_MODEL = "openai/gpt-4.1-mini"
    ```
 
 5. Deploy, open the resulting `https://….streamlit.app` URL, and generate the example brief. Share that URL with your mentor.
 
 Deployment reference: https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy
 
-The owner's cloud keys power all visitors' requests. Each successful run normally uses one SerpAPI search and three Gemini calls; retries can add calls. There is no authentication, database or persistent report history. Streamlit session state keeps only the current browser session's latest successful result.
+The owner's cloud keys power all visitors' requests. Each successful run normally uses one SerpAPI search and three OpenRouter calls; retries can add calls. There is no authentication, database or persistent report history. Streamlit session state keeps only the current browser session's latest successful result.
 
 ## Backend and classroom walkthrough
 

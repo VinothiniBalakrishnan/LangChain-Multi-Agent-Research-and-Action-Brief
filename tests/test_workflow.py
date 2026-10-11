@@ -19,6 +19,11 @@ BRIEF = workflow.ActionBrief(executive_summary="Demand merits validation [S1].",
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_gemini_credentials_do_not_satisfy_openrouter_requirement(self):
+        values = {"GEMINI_API_KEY": "old-test-key", "SERP_API_KEY": "search-test-key"}
+        with patch.object(workflow, "setting", side_effect=lambda name: values.get(name, "")):
+            self.assertEqual(workflow.missing_keys(), ["OPENROUTER_API_KEY"])
+
     def test_empty_input_does_not_call_search(self):
         with patch.object(workflow, "search_web") as search:
             for value in ("", "  ", None):
@@ -28,7 +33,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_missing_keys(self):
         with patch.object(workflow, "setting", return_value=""):
-            with self.assertRaisesRegex(workflow.WorkflowError, "GEMINI_API_KEY, SERP_API_KEY"):
+            with self.assertRaisesRegex(workflow.WorkflowError, "OPENROUTER_API_KEY, SERP_API_KEY"):
                 workflow.run_workflow("Demand for training?")
 
     def test_sequential_workflow_and_source_propagation(self):
@@ -51,12 +56,14 @@ class WorkflowTests(unittest.TestCase):
                     return BRIEF
 
                 model = RunnableLambda(respond)
-                model.with_structured_output = lambda schema: RunnableLambda(finish)
+                model.with_structured_output = lambda schema, **kwargs: RunnableLambda(finish)
                 with patch.object(workflow, "missing_keys", return_value=[]), \
                      patch.object(workflow, "setting", return_value="test-key"), \
                      patch.object(workflow, "search_web", return_value=SOURCES), \
-                     patch.object(workflow, "ChatGoogleGenerativeAI", return_value=model):
+                     patch.object(workflow, "ChatOpenRouter", return_value=model) as constructor:
                     result = workflow.run_workflow(question)
+                self.assertEqual(constructor.call_args.kwargs["api_key"], "test-key")
+                self.assertNotIn("vertexai", constructor.call_args.kwargs)
                 self.assertEqual(len(calls), 3)
                 for heading in ("Executive Summary", "Key Findings", "Risks", "Recommendations and Next Steps", "Sources"):
                     self.assertIn("## " + heading, result)
@@ -95,7 +102,7 @@ class WorkflowTests(unittest.TestCase):
         with patch.object(workflow, "missing_keys", return_value=[]), \
              patch.object(workflow, "setting", return_value="SECRET"), \
              patch.object(workflow, "search_web", return_value=SOURCES), \
-             patch.object(workflow, "ChatGoogleGenerativeAI", side_effect=RuntimeError("SECRET")):
+             patch.object(workflow, "ChatOpenRouter", side_effect=RuntimeError("SECRET")):
             with self.assertRaises(workflow.WorkflowError) as error:
                 workflow.run_workflow("A business question")
         self.assertNotIn("SECRET", str(error.exception))
@@ -104,7 +111,7 @@ class WorkflowTests(unittest.TestCase):
 
 class DashboardTests(unittest.TestCase):
     def test_missing_key_setup(self):
-        with patch.object(workflow, "missing_keys", return_value=["GEMINI_API_KEY"]):
+        with patch.object(workflow, "missing_keys", return_value=["OPENROUTER_API_KEY"]):
             app = AppTest.from_file(APP_PATH).run()
         self.assertFalse(app.exception)
         self.assertTrue(app.button[0].disabled)

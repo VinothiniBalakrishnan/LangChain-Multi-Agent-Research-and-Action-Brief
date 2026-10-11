@@ -28,14 +28,14 @@ st.write("")
 try:
     missing = missing_keys()
 except Exception:
-    missing = ["GEMINI_API_KEY", "SERP_API_KEY"]
+    missing = ["OPENROUTER_API_KEY", "SERP_API_KEY"]
     st.error("Secrets could not be read. Check that .streamlit/secrets.toml contains valid TOML.")
 
 if missing:
     st.info("Setup needed: add " + ", ".join(missing) + " to Streamlit secrets or environment variables.")
     with st.expander("API key setup"):
         st.write("Locally, edit `.streamlit/secrets.toml`. On Streamlit Cloud, use App settings → Secrets.")
-        st.code('GEMINI_API_KEY = "your-gemini-key"\nSERP_API_KEY = "your-serpapi-key"', language="toml")
+        st.code('OPENROUTER_API_KEY = "your-openrouter-key"\nSERP_API_KEY = "your-serpapi-key"', language="toml")
 
 with st.form("business_question"):
     question = st.text_area("What would you like to research?", value=EXAMPLE_QUESTION, height=140, max_chars=2000,
@@ -78,4 +78,4 @@ else:
     st.caption("Your results will include an executive summary, key findings, risks, recommendations and source links.")
 
 st.divider()
-st.caption("Powered by LangChain · Gemini · SerpAPI | Evidence comes from search snippets; review the linked sources.")
+st.caption("Powered by LangChain · OpenRouter · SerpAPI | Evidence comes from search snippets; review the linked sources.")
